@@ -2,15 +2,19 @@ import processing.core.*;
 import processing.pdf.*;
 import toxi.geom.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
+import com.sun.image.codec.jpeg.*;
 
 public class ArcVis extends PApplet {
-	float radius = 500;
-	int width = 800, height = 800;
+	float radius = 1200;
+	int width = 100, height = 100;
 	float padding = 5;
 	Vec2D windowCenter = new Vec2D(width/2, height/2); 
 	HashMap<String, HashMap> arcMap = new HashMap();
@@ -21,12 +25,18 @@ public class ArcVis extends PApplet {
 	}
 	
 	public void setup() {
-		size(width, height);
+		size(width, height); //, PDF, "output.pdf");
 		String[] fontList = PFont.list();
 		println(fontList);
-		fontA = loadFont("Helvetica-Bold-14.vlw");
-		textFont(fontA, 14);
-		smooth();
+		//fontA = loadFont("Helvetica-14.vlw");
+		fontA = createFont("HelveticaNeue-Bold", 22, true);
+		textFont(fontA, 22);
+		strokeCap(ROUND);
+		strokeWeight(1);
+		background(255);
+		hint(ENABLE_NATIVE_FONTS);
+		
+		
 		String[] text = loadStrings("human_rights.txt");
 		ArrayList<String> textList = new ArrayList(Arrays.asList(text));
 		//println(textList);
@@ -79,7 +89,7 @@ public class ArcVis extends PApplet {
 		
 		// Record to PDF too.
 		//beginRecord(PDF, "output.pdf");
-		
+		smooth();
 	}
 	
 	public void draw() {
@@ -100,10 +110,13 @@ public class ArcVis extends PApplet {
 		translate(windowCenter.x, windowCenter.y);
 		
 		// For each word, render around circle
-		for (Map.Entry e : arcMap.entrySet()) {
+		ArrayList<String> sortedWords = new ArrayList(arcMap.keySet());
+		Collections.sort(sortedWords);
+		
+		for (String word : sortedWords) {
 			
-			String word = (String)(e.getKey());
-			HashMap wordData = (HashMap)(e.getValue());
+			//String word = (String)(e.getKey());
+			HashMap wordData = arcMap.get(word);
 			
 			// Render the text
 			text(word, radius/2 + padding, 0);
@@ -119,6 +132,22 @@ public class ArcVis extends PApplet {
 			theta += thetaIncrement;
 		}
 		
+		int maxNumArcs = 0;
+		int threshold = floor(maxNumArcs / 3);
+		int totalArcs = 0;
+		float avgNumArcs = 0;
+		for (HashMap m : arcMap.values()) {
+			int numArcs = ((ArrayList)m.get("nexts")).size();
+			totalArcs += numArcs;
+			if (numArcs > maxNumArcs) {
+				maxNumArcs = numArcs;
+			}
+		}
+		avgNumArcs = (float)(totalArcs) / arcMap.size();
+		println("==== MAX ARCS: " + maxNumArcs + " ====");
+		println("==== TOT ARCS: " + totalArcs + " ====");
+		println("==== AVG ARCS: " + avgNumArcs + " ====");
+		
 		// Now we're going to draw the arcs
 		for (Map.Entry e : arcMap.entrySet()) {
 			String word = (String)(e.getKey());
@@ -127,10 +156,18 @@ public class ArcVis extends PApplet {
 			ArrayList<String> arcs = (ArrayList<String>)wordData.get("nexts");
 			
 			for (String nextArcWord : arcs) {
-				if (arcs.size() > 3) {
-					stroke(50);
+				// baseline 40 opacity
+				int opacity = (100 / maxNumArcs) * arcs.size() + 80;
+				
+				// if you're over the average (mean) # arcs, you get special
+				// rendering.
+				// Gets redder and more opaque the stronger the word.
+				if (arcs.size() > 2) {
+					stroke(opacity, 0, 0, opacity + 100);
+					strokeWeight(1);
 				} else {
-					stroke(128);
+					stroke(0, 90);	
+					strokeWeight(1);
 				}
 				println("\""+ word +"\": next arc word is: " + nextArcWord);
 				Vec2D nextCoords = (Vec2D)(arcMap.get(nextArcWord).get("coordinates"));
@@ -139,6 +176,7 @@ public class ArcVis extends PApplet {
 		}
 
 		println(arcMap);
+		// this.saveFrame("output.png");
 		//endRecord();
 		//exit();
 	}

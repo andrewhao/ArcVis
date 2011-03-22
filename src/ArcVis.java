@@ -14,27 +14,30 @@ import com.sun.image.codec.jpeg.*;
 
 public class ArcVis extends PApplet {
 	float radius = 1200;
-	int width = 100, height = 100;
+	int width = 2000, height = 2000;
 	float padding = 5;
 	Vec2D windowCenter = new Vec2D(width/2, height/2); 
 	HashMap<String, HashMap> arcMap = new HashMap();
 	PFont fontA;
+	PGraphics pg;
 	
 	public String normalizeWord(String w) {
 		return w.replaceAll("[^A-Za-z\'\"]", "").toLowerCase();
 	}
 	
 	public void setup() {
+		
 		size(width, height); //, PDF, "output.pdf");
+		pg = (PGraphics)createGraphics(width, height, JAVA2D);
 		String[] fontList = PFont.list();
 		println(fontList);
 		//fontA = loadFont("Helvetica-14.vlw");
 		fontA = createFont("HelveticaNeue-Bold", 22, true);
-		textFont(fontA, 22);
-		strokeCap(ROUND);
-		strokeWeight(1);
-		background(255);
-		hint(ENABLE_NATIVE_FONTS);
+		pg.textFont(fontA, 22);
+		pg.strokeCap(PROJECT);
+		pg.strokeWeight(1);
+		//pg.background(255);
+		pg.hint(ENABLE_NATIVE_FONTS);
 		
 		
 		String[] text = loadStrings("human_rights.txt");
@@ -93,7 +96,10 @@ public class ArcVis extends PApplet {
 	}
 	
 	public void draw() {
-		Circle c = new Circle(windowCenter, radius);
+		
+		pg.beginDraw();
+		
+		//Circle c = new Circle(windowCenter, radius);
 		//ellipse(c.x, c.y, c.getRadius(), c.getRadius());
 		
 		// Tracks the angle of the word being rendered
@@ -103,11 +109,13 @@ public class ArcVis extends PApplet {
 		float thetaIncrement = radians((float)360 / arcMap.size());
 		
 		// initial rendering setup
-		textAlign(LEFT, CENTER);
-		fill(20);
+		pg.textAlign(LEFT, CENTER);
+		
+		pg.fill(0);
+		//pg.fill(255, 187, 110); // sandstone
 		
 		// Translate coord system to window center.
-		translate(windowCenter.x, windowCenter.y);
+		pg.translate(windowCenter.x, windowCenter.y);
 		
 		// For each word, render around circle
 		ArrayList<String> sortedWords = new ArrayList(arcMap.keySet());
@@ -119,10 +127,10 @@ public class ArcVis extends PApplet {
 			HashMap wordData = arcMap.get(word);
 			
 			// Render the text
-			text(word, radius/2 + padding, 0);
+			pg.text(word, radius/2 + padding, 0);
 
 			// Rotate the text for next word.
-			rotate(thetaIncrement);
+			pg.rotate(thetaIncrement);
 			
 			// Store
 			wordData.put("theta", theta);
@@ -163,21 +171,28 @@ public class ArcVis extends PApplet {
 				// rendering.
 				// Gets redder and more opaque the stronger the word.
 				if (arcs.size() > 2) {
-					stroke(opacity, 0, 0, opacity + 100);
-					strokeWeight(1);
+					pg.stroke(0, opacity);
+					//pg.stroke(242, 141, 0, 255);
+					pg.strokeWeight(5);
 				} else {
-					stroke(0, 90);	
-					strokeWeight(1);
+					pg.stroke(0, 90); // sandstone					
+					pg.strokeWeight(3);
 				}
 				println("\""+ word +"\": next arc word is: " + nextArcWord);
 				Vec2D nextCoords = (Vec2D)(arcMap.get(nextArcWord).get("coordinates"));
-				line(fromCoords.x, fromCoords.y, nextCoords.x, nextCoords.y);
+				pg.line(fromCoords.x, fromCoords.y, nextCoords.x, nextCoords.y);
 			}
 		}
 
 		println(arcMap);
-		// this.saveFrame("output.png");
+//		saveFrame("output.png");
 		//endRecord();
-		//exit();
+		
+		pg.endDraw();
+		image(pg, 0, 0);
+		pg.save("output.png");
+		
+		delay(3);
+		exit();
 	}
 }

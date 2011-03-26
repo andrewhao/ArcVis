@@ -112,6 +112,9 @@ public class ArcVis extends PApplet {
 			HashMap wordData = arcMap.get(word);
 			
 			// Render the text
+			int numArcs = ((ArrayList)wordData.get("nexts")).size();
+			int opacity = (numArcs * 30) + 150;
+			pg.fill(0, opacity);
 			pg.text(word, radius/2 + padding, 0);
 
 			// Rotate the text for next word.
@@ -126,7 +129,6 @@ public class ArcVis extends PApplet {
 		}
 		
 		int maxNumArcs = 0;
-		int threshold = floor(maxNumArcs / 3);
 		int totalArcs = 0;
 		float avgNumArcs = 0;
 		for (HashMap m : arcMap.values()) {
@@ -155,10 +157,10 @@ public class ArcVis extends PApplet {
 				// Gets thicker and more opaque the stronger the word.
 				if (arcs.size() > avgNumArcs) {
 					pg.stroke(0, opacity);
-					pg.strokeWeight(5);
+					pg.strokeWeight(4);
 				} else {
 					pg.stroke(0, 90);
-					pg.strokeWeight(3);
+					pg.strokeWeight(2);
 				}
 				
 				Vec2D nextCoords = (Vec2D)(arcMap.get(nextArcWord).get("coordinates"));

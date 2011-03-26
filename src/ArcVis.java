@@ -7,14 +7,10 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.*;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import com.sun.image.codec.jpeg.*;
 
 public class ArcVis extends PApplet {
 	float radius = 1200;
-	int width = 2000, height = 2000;
+	int width = 1500, height = 1500;
 	float padding = 5;
 	Vec2D windowCenter = new Vec2D(width/2, height/2); 
 	HashMap<String, HashMap> arcMap = new HashMap();
@@ -26,28 +22,20 @@ public class ArcVis extends PApplet {
 	}
 	
 	public void setup() {
+		pg = (PGraphics)createGraphics(width, height, PDF, "output.pdf");
 		
-		size(width, height); //, PDF, "output.pdf");
-		pg = (PGraphics)createGraphics(width, height, JAVA2D);
-		String[] fontList = PFont.list();
-		println(fontList);
-		//fontA = loadFont("Helvetica-14.vlw");
+		// Print this to see the names of the font you desire to use.
+		// String[] fontList = PFont.list();
+
+		// Depends on "Helvetica Neue Bold" font being installed (OS X)
 		fontA = createFont("HelveticaNeue-Bold", 22, true);
-		pg.textFont(fontA, 22);
-		pg.strokeCap(PROJECT);
-		pg.strokeWeight(1);
-		//pg.background(255);
-		pg.hint(ENABLE_NATIVE_FONTS);
 		
-		
-		String[] text = loadStrings("human_rights.txt");
+		String[] text = loadStrings("words.txt");
 		ArrayList<String> textList = new ArrayList(Arrays.asList(text));
-		//println(textList);
-		
-		String[] blacks = {"of", "the", "in", "a", "and", "to", "it", "is"};
+		String[] blacks = {"of", "the", "a", "and", "to"};
 		ArrayList<String> blacklist = new ArrayList(Arrays.asList(blacks));
 		
-		// Compute the directed arcs.
+		// Compute the directed arcs, taking the blacklist into account.
 		for (String line : textList) {
 			String[] words = line.split("[ ]");
 			for (int i = 0; i < words.length; i++) {
@@ -55,7 +43,7 @@ public class ArcVis extends PApplet {
 				String w = this.normalizeWord(words[i]);
 				
 				if (blacklist.contains(w)) {
-					println("kill on "+w);
+					// don't render this arc.
 					continue;
 				}
 				
@@ -85,35 +73,32 @@ public class ArcVis extends PApplet {
 				}
 			}
 		}
-		
 
 		// draw() once.
 		noLoop();
-		
-		// Record to PDF too.
-		//beginRecord(PDF, "output.pdf");
 		smooth();
 	}
 	
 	public void draw() {
-		
+
 		pg.beginDraw();
 		
-		//Circle c = new Circle(windowCenter, radius);
-		//ellipse(c.x, c.y, c.getRadius(), c.getRadius());
+		// Set render defaults
+		pg.textMode(SHAPE);
+		pg.textFont(fontA, 22);
+		pg.strokeCap(ROUND);
+		pg.strokeWeight(1);
+		pg.background(255);
+		pg.hint(ENABLE_NATIVE_FONTS);
+		pg.textAlign(LEFT, CENTER);		
+		pg.fill(0);
 		
 		// Tracks the angle of the word being rendered
 		float theta = 0;
 		
 		// How far to iterate the theta on the next word.
 		float thetaIncrement = radians((float)360 / arcMap.size());
-		
-		// initial rendering setup
-		pg.textAlign(LEFT, CENTER);
-		
-		pg.fill(0);
-		//pg.fill(255, 187, 110); // sandstone
-		
+				
 		// Translate coord system to window center.
 		pg.translate(windowCenter.x, windowCenter.y);
 		
@@ -152,9 +137,6 @@ public class ArcVis extends PApplet {
 			}
 		}
 		avgNumArcs = (float)(totalArcs) / arcMap.size();
-		println("==== MAX ARCS: " + maxNumArcs + " ====");
-		println("==== TOT ARCS: " + totalArcs + " ====");
-		println("==== AVG ARCS: " + avgNumArcs + " ====");
 		
 		// Now we're going to draw the arcs
 		for (Map.Entry e : arcMap.entrySet()) {
@@ -164,35 +146,31 @@ public class ArcVis extends PApplet {
 			ArrayList<String> arcs = (ArrayList<String>)wordData.get("nexts");
 			
 			for (String nextArcWord : arcs) {
-				// baseline 40 opacity
+				// baseline 80 opacity
+				// higher opacity based on # of arcs.
 				int opacity = (100 / maxNumArcs) * arcs.size() + 80;
-				
+								
 				// if you're over the average (mean) # arcs, you get special
 				// rendering.
-				// Gets redder and more opaque the stronger the word.
-				if (arcs.size() > 2) {
+				// Gets thicker and more opaque the stronger the word.
+				if (arcs.size() > avgNumArcs) {
 					pg.stroke(0, opacity);
-					//pg.stroke(242, 141, 0, 255);
 					pg.strokeWeight(5);
 				} else {
-					pg.stroke(0, 90); // sandstone					
+					pg.stroke(0, 90);
 					pg.strokeWeight(3);
 				}
-				println("\""+ word +"\": next arc word is: " + nextArcWord);
+				
 				Vec2D nextCoords = (Vec2D)(arcMap.get(nextArcWord).get("coordinates"));
 				pg.line(fromCoords.x, fromCoords.y, nextCoords.x, nextCoords.y);
 			}
 		}
 
+		// Debug output of all the arcs and their coords.
 		println(arcMap);
-//		saveFrame("output.png");
-		//endRecord();
 		
+		pg.dispose();
 		pg.endDraw();
-		image(pg, 0, 0);
-		pg.save("output.png");
-		
-		delay(3);
 		exit();
 	}
 }
